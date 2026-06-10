@@ -63,7 +63,7 @@ export function WeddingCountdown({ revealed = true }: WeddingCountdownProps) {
         initial={{ opacity: 0, scale: 0.96 }}
         animate={revealed ? { opacity: 1, scale: 1 } : {}}
         transition={{ duration: 0.7, ease, delay: 0.68 }}
-        className="countdown-complete mt-6 inline-block rounded-full px-8 py-3"
+        className="countdown-complete countdown-glass mt-6 inline-block rounded-full px-8 py-3"
       >
         <p className="font-[family-name:var(--font-playfair)] text-lg italic text-champagne-light md:text-xl">
           C&apos;est le grand jour !
@@ -81,7 +81,7 @@ export function WeddingCountdown({ revealed = true }: WeddingCountdownProps) {
       aria-live="polite"
       aria-label="Compte à rebours jusqu'au mariage"
     >
-      <p className="mb-3 font-[family-name:var(--font-sans)] text-[10px] font-semibold tracking-[0.32em] text-purple-royal uppercase">
+      <p className="mb-3 font-[family-name:var(--font-sans)] text-[10px] font-semibold tracking-[0.32em] text-emerald uppercase">
         Jusqu&apos;au grand jour
       </p>
 
@@ -89,21 +89,21 @@ export function WeddingCountdown({ revealed = true }: WeddingCountdownProps) {
         initial={{ opacity: 0, scale: 0.97 }}
         animate={revealed ? { opacity: 1, scale: 1 } : {}}
         transition={{ duration: 0.8, ease, delay: 0.74 }}
-        className="countdown-band mx-auto inline-flex max-w-full flex-wrap items-center justify-center gap-y-3 rounded-[2rem] px-5 py-4 sm:px-8 sm:py-5"
+        className="countdown-band mx-auto inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-[1.75rem] p-2 sm:gap-2.5 sm:p-2.5"
       >
         {UNITS.map((unit, index) => (
           <div key={unit.key} className="flex items-center">
             {index > 0 ? (
-              <span className="countdown-separator mx-3 sm:mx-4" aria-hidden="true" />
+              <span className="countdown-separator mx-1.5 sm:mx-2" aria-hidden="true" />
             ) : null}
 
-            <div className="countdown-unit flex flex-col items-center gap-1">
+            <div className="countdown-tile flex min-w-[3.6rem] flex-col items-center gap-1 px-3 py-2.5 sm:min-w-[4.25rem] sm:px-4 sm:py-3">
               <CountdownValue
                 value={countdown[unit.key]}
                 pad={unit.pad}
                 animate={unit.key === "seconds"}
               />
-              <span className="font-[family-name:var(--font-sans)] text-[9px] font-medium tracking-[0.22em] text-pearl/75 uppercase sm:text-[10px]">
+              <span className="font-[family-name:var(--font-sans)] text-[9px] font-semibold tracking-[0.2em] text-emerald/85 uppercase sm:text-[10px]">
                 {unit.label}
               </span>
             </div>

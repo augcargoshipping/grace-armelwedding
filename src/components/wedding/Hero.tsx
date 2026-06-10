@@ -12,7 +12,7 @@ export function Hero({ revealed = true }: { revealed?: boolean }) {
   return (
     <section
       id="accueil"
-      className="hero-section relative isolate flex min-h-[100svh] flex-col overflow-hidden md:block md:items-center md:justify-center md:px-6 md:py-24"
+      className="hero-section relative isolate min-h-[100svh] overflow-hidden md:px-6"
     >
       <motion.div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -33,8 +33,8 @@ export function Hero({ revealed = true }: { revealed?: boolean }) {
 
       <FloatingParticles className="opacity-50 md:opacity-70" />
 
-      <div className="relative z-10 flex min-h-[100svh] w-full flex-col md:mx-auto md:min-h-0 md:max-w-4xl md:justify-center md:text-center">
-        <div className="px-5 pt-[max(6.75rem,16svh)] text-center md:px-0 md:pt-0">
+      <div className="hero-layout relative z-10 flex min-h-[100svh] w-full flex-col md:mx-auto md:max-w-4xl">
+        <div className="hero-copy relative z-20 shrink-0 px-5 pt-[max(6.5rem,13svh)] text-center md:px-0 md:pt-[max(5rem,10svh)]">
           <motion.p
             initial={{ opacity: 0, y: 16 }}
             animate={revealed ? { opacity: 1, y: 0 } : {}}
@@ -85,14 +85,14 @@ export function Hero({ revealed = true }: { revealed?: boolean }) {
           initial={{ opacity: 0, y: 14 }}
           animate={revealed ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.85, ease, delay: 0.8 }}
-          className="hero-photo-slot relative mx-auto mt-2 w-full max-w-md flex-1 px-4 md:mt-6 md:max-h-[min(34vh,280px)] md:flex-none md:px-0"
+          className="hero-photo-slot pointer-events-none relative z-10 mx-auto min-h-0 w-full max-w-[min(100vw,640px)] flex-1 md:max-w-4xl"
         >
           <Image
             src={WEDDING_IMAGES.heroPhoto}
             alt={`${COUPLE.bride} et ${COUPLE.groom}`}
             fill
             className="object-contain object-bottom drop-shadow-[0_16px_32px_rgba(28,26,24,0.14)]"
-            sizes="(max-width: 768px) 92vw, 360px"
+            sizes="(max-width: 768px) 100vw, 768px"
             priority
           />
         </motion.div>
@@ -101,7 +101,7 @@ export function Hero({ revealed = true }: { revealed?: boolean }) {
           initial={{ opacity: 0, y: 16 }}
           animate={revealed ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.7, ease, delay: 0.88 }}
-          className="hero-cta-row mt-auto flex w-full flex-row items-stretch justify-center gap-2 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 md:mt-8 md:gap-4 md:px-0 md:pb-0 md:pt-0"
+          className="hero-cta-row relative z-30 flex w-full shrink-0 flex-row items-stretch justify-center gap-2 px-4 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:gap-4 md:px-0 md:pt-3"
         >
           <a href="#programme" className="btn-primary btn-hero-cta flex-1 md:flex-none">
             Découvrir le programme
