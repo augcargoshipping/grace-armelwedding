@@ -77,11 +77,11 @@ export function WeddingCountdown({ revealed = true }: WeddingCountdownProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={revealed ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.85, ease, delay: 0.68 }}
-      className="mt-7"
+      className="mt-3 md:mt-7"
       aria-live="polite"
       aria-label="Compte à rebours jusqu'au mariage"
     >
-      <p className="mb-3 font-[family-name:var(--font-sans)] text-[10px] font-semibold tracking-[0.32em] text-emerald uppercase">
+      <p className="mb-1.5 font-[family-name:var(--font-sans)] text-[10px] font-semibold tracking-[0.32em] text-emerald uppercase md:mb-3">
         Jusqu&apos;au grand jour
       </p>
 

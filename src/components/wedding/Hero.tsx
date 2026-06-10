@@ -57,14 +57,14 @@ export function Hero({ revealed = true }: { revealed?: boolean }) {
             initial={{ scaleX: 0 }}
             animate={revealed ? { scaleX: 1 } : {}}
             transition={{ duration: 0.8, ease, delay: 0.4 }}
-            className="gold-line mx-auto my-5 w-28 origin-center md:my-6"
+            className="gold-line mx-auto my-3 w-28 origin-center md:my-6"
           />
 
           <motion.p
             initial={{ opacity: 0, y: 18 }}
             animate={revealed ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, ease, delay: 0.48 }}
-            className="mx-auto max-w-2xl font-[family-name:var(--font-playfair)] text-lg leading-relaxed text-ink-soft md:text-xl"
+            className="hero-subtitle mx-auto max-w-2xl font-[family-name:var(--font-playfair)] text-lg leading-relaxed text-ink-soft md:text-xl"
           >
             {COPY.heroSubtitle}
           </motion.p>
@@ -73,7 +73,7 @@ export function Hero({ revealed = true }: { revealed?: boolean }) {
             initial={{ opacity: 0 }}
             animate={revealed ? { opacity: 1 } : {}}
             transition={{ duration: 0.7, delay: 0.62 }}
-            className="mt-3 font-[family-name:var(--font-cormorant)] text-xl font-bold text-emerald md:mt-4 md:text-3xl"
+            className="mt-1 font-[family-name:var(--font-cormorant)] text-xl font-bold text-emerald md:mt-4 md:text-3xl"
           >
             {WEDDING.dateDisplay}
           </motion.p>
@@ -85,7 +85,7 @@ export function Hero({ revealed = true }: { revealed?: boolean }) {
           initial={{ opacity: 0, y: 14 }}
           animate={revealed ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.85, ease, delay: 0.8 }}
-          className="hero-photo-slot pointer-events-none relative z-10 mx-auto min-h-0 w-full max-w-[min(100vw,640px)] flex-1 md:max-w-4xl"
+          className="hero-photo-slot pointer-events-none absolute inset-x-0 bottom-0 z-20 mx-auto w-full max-w-[min(100vw,680px)] md:relative md:z-10 md:min-h-0 md:max-w-4xl md:flex-1"
         >
           <Image
             src={WEDDING_IMAGES.heroPhoto}
