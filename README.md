@@ -21,6 +21,8 @@ npm run placeholders
 
 Remplacez ensuite les fichiers dans `public/images/` par vos photos.
 
+**Séparateur floral entre sections :** remplacez `public/images/floral-divider.png` par votre fichier PNG (fond transparent recommandé, format horizontal).
+
 ## RSVP (Supabase)
 
 1. Créez un projet sur [supabase.com](https://supabase.com)

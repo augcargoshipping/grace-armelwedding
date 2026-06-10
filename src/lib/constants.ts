@@ -129,6 +129,8 @@ export const WEDDING_IMAGES = {
   heroPhoto: "/images/hero-photo.png",
   story: "/images/story.jpg",
   storyAccent: "/images/story-accent.jpg",
+  /** Replace with your floral PNG: public/images/floral-divider.png */
+  floralDivider: "/images/floral-divider.png",
 } as const;
 
 export const WEDDING_AUDIO = {

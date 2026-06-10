@@ -65,32 +65,34 @@ export function SectionNav({ visible }: { visible: boolean }) {
   if (!visible || !mounted) return null;
 
   return createPortal(
-    <motion.nav
-      className={`section-nav ${scrolled ? "section-nav--visible" : ""}`}
-      aria-label="Sections"
-      initial={{ y: -80, opacity: 0 }}
-      animate={{ y: scrolled ? 0 : -80, opacity: scrolled ? 1 : 0 }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <span className="mr-1 hidden border-r border-champagne/30 pr-2 font-[family-name:var(--font-cormorant)] text-sm font-semibold text-emerald sm:inline">
-        {COUPLE.initials}
-      </span>
-      {SECTIONS.map((section) => (
-        <motion.a
-          key={section.id}
-          href={`#${section.id}`}
-          data-active={active === section.id}
-          onClick={(event) => {
-            event.preventDefault();
-            scrollToSection(section.id);
-          }}
-          whileTap={{ scale: 0.92 }}
-          transition={{ type: "spring", stiffness: 500, damping: 28 }}
-        >
-          {section.label}
-        </motion.a>
-      ))}
-    </motion.nav>,
+    <div className="section-nav-shell">
+      <motion.nav
+        className="section-nav"
+        aria-label="Sections"
+        initial={{ y: -80, opacity: 0 }}
+        animate={{ y: scrolled ? 0 : -80, opacity: scrolled ? 1 : 0 }}
+        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <span className="mr-1 hidden shrink-0 border-r border-champagne/30 pr-2 font-[family-name:var(--font-cormorant)] text-sm font-semibold text-emerald sm:inline">
+          {COUPLE.initials}
+        </span>
+        {SECTIONS.map((section) => (
+          <motion.a
+            key={section.id}
+            href={`#${section.id}`}
+            data-active={active === section.id}
+            onClick={(event) => {
+              event.preventDefault();
+              scrollToSection(section.id);
+            }}
+            whileTap={{ scale: 0.92 }}
+            transition={{ type: "spring", stiffness: 500, damping: 28 }}
+          >
+            {section.label}
+          </motion.a>
+        ))}
+      </motion.nav>
+    </div>,
     document.body,
   );
 }
