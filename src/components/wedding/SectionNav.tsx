@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { COUPLE } from "@/lib/constants";
@@ -21,6 +21,7 @@ export function SectionNav({ visible }: { visible: boolean }) {
   const [active, setActive] = useState("accueil");
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const scrolledRef = useRef(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -34,20 +35,25 @@ export function SectionNav({ visible }: { visible: boolean }) {
 
   useEffect(() => {
     if (!visible) return;
-    const onScroll = () => {
-      setScrolled(window.scrollY > 120);
-      if (window.scrollY < window.innerHeight * 0.5) {
-        setActive("accueil");
-      }
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [visible]);
 
-  useEffect(() => {
-    if (!visible) return;
     const sections = SECTIONS.map((s) => document.getElementById(s.id)).filter(Boolean);
+    let frame = 0;
+
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        const nextScrolled = window.scrollY > 120;
+        if (nextScrolled !== scrolledRef.current) {
+          scrolledRef.current = nextScrolled;
+          setScrolled(nextScrolled);
+        }
+        if (window.scrollY < window.innerHeight * 0.5) {
+          setActive("accueil");
+        }
+      });
+    };
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (window.scrollY < window.innerHeight * 0.5) return;
@@ -56,10 +62,18 @@ export function SectionNav({ visible }: { visible: boolean }) {
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
         if (top?.target.id) setActive(top.target.id);
       },
-      { rootMargin: "-28% 0px -58% 0px", threshold: [0.15, 0.35, 0.55] },
+      { rootMargin: "-28% 0px -58% 0px", threshold: [0.2, 0.45] },
     );
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
     sections.forEach((el) => observer.observe(el!));
-    return () => observer.disconnect();
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      observer.disconnect();
+      if (frame) window.cancelAnimationFrame(frame);
+    };
   }, [visible]);
 
   if (!visible || !mounted) return null;

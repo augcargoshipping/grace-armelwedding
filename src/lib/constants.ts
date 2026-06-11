@@ -20,7 +20,7 @@ export const COPY = {
   bibleVerse:
     "Mais par-dessus tout cela,\nrevêtez-vous de l'amour,\nqui est le lien de la perfection.",
   bibleRef: "Colossiens 3:14",
-  storyTitle: "Notre Histoire",
+  storyTitle: "Notre histoire",
   storyText:
     "Deux destins, un même chemin. Entre rires partagés, regards complices et promesses murmurées, notre histoire s'est écrite page après page — jusqu'à ce jour où nous choisissons de dire oui, devant ceux que nous aimons.",
   programTitle: "Programme de la Journée",
@@ -32,8 +32,18 @@ export const COPY = {
   rsvpPrompt: "Merci de confirmer votre présence.",
   infoTitle: "Informations Importantes",
   footerThanks: "Merci de partager ce moment précieux avec nous.",
-  openerTap: "Appuyez sur le sceau pour ouvrir",
+  openerInvited: "Vous êtes invités",
+  openerTap: "Appuyez pour ouvrir votre invitation",
   openerOpening: "Ouverture de votre invitation…",
+  openerPreparing: "Préparation de votre invitation…",
+  openerTapAnywhere: "Appuyez n'importe où",
+} as const;
+
+/** Opener: public/videos/0610.mp4 + public/images/opener-poster.png */
+export const OPENER_VIDEO = {
+  src: "/videos/0610.mp4",
+  poster: "/images/opener-poster.png",
+  muted: true,
 } as const;
 
 export const PROGRAM = [
@@ -132,7 +142,6 @@ export const GALLERY_IMAGES = [
   { src: "/images/gallery/14.JPG", alt: "Coup de foudre" },
   { src: "/images/gallery/15.JPG", alt: "Ensemble pour toujours" },
   { src: "/images/gallery/16.JPG", alt: "Joie partagée" },
-  { src: "/images/gallery/17.JPG", alt: "Avant le grand jour" },
 ] as const;
 
 export const WEDDING_IMAGES = {

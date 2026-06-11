@@ -37,6 +37,7 @@ export function Gallery() {
   const sectionRef = useRef<HTMLElement>(null);
   const pauseUntilRef = useRef(0);
   const inView = useInView(sectionRef, { once: true, margin: "-8% 0px" });
+  const isActive = useInView(sectionRef, { margin: "-20% 0px -20% 0px", amount: 0.2 });
 
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
@@ -77,12 +78,13 @@ export function Gallery() {
   );
 
   useEffect(() => {
+    if (!isActive) return;
     const timer = window.setInterval(() => {
       if (Date.now() < pauseUntilRef.current) return;
       nextSlide(false);
     }, AUTO_INTERVAL_MS);
     return () => window.clearInterval(timer);
-  }, [nextSlide]);
+  }, [isActive, nextSlide]);
 
   const transitionDuration = fastTransition ? MANUAL_DURATION : AUTO_DURATION;
   const transitionEase = fastTransition ? fastEase : slideEase;
@@ -136,6 +138,7 @@ export function Gallery() {
                   fill
                   className="pointer-events-none object-cover select-none"
                   sizes="100vw"
+                  quality={75}
                   priority={index === 0}
                   draggable={false}
                 />
@@ -189,7 +192,8 @@ export function Gallery() {
 
         {/* Desktop grid */}
         <div className="gallery-grid hidden md:grid">
-          {GALLERY_IMAGES.map((image, i) => (
+          {inView &&
+            GALLERY_IMAGES.map((image, i) => (
             <motion.div
               key={image.src}
               initial={{ opacity: 0, y: 28 }}
@@ -208,7 +212,8 @@ export function Gallery() {
                   fill
                   className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                   sizes="(max-width: 1024px) 50vw, 33vw"
-                  loading={i > 2 ? "lazy" : undefined}
+                  quality={75}
+                  loading="lazy"
                 />
                 <div className="gallery-grid-overlay pointer-events-none absolute inset-0 flex items-end p-4 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
                   <p className="font-[family-name:var(--font-playfair)] text-sm italic text-white">
@@ -217,7 +222,7 @@ export function Gallery() {
                 </div>
               </div>
             </motion.div>
-          ))}
+            ))}
         </div>
       </div>
     </section>

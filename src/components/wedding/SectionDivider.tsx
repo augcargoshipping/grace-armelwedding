@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { WEDDING_IMAGES } from "@/lib/constants";
 
@@ -13,29 +12,32 @@ export function SectionDivider({ variant = "simple" }: SectionDividerProps) {
 
   if (variant === "floral") {
     return (
-      <div className="section-divider-floral relative w-full -my-8 py-1 md:-my-12 md:py-2" aria-hidden="true">
+      <div className="section-divider-floral relative w-full -my-10 py-0 md:-my-14" aria-hidden="true">
         <motion.div
-          className="section-divider-floral-frame relative mx-auto w-full max-md:max-w-none md:max-w-6xl"
-          initial={{ opacity: 0, scale: 0.92 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true, margin: "-40px" }}
-          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+          className="section-divider-bar mx-auto w-full max-w-4xl px-6 md:max-w-5xl md:px-8"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, margin: "-24px" }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
           <motion.div
-            className="section-divider-floral-image w-full"
-            animate={reducedMotion ? undefined : { y: [0, -2, 0] }}
-            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+            className="section-divider-bar-track relative h-4 overflow-hidden rounded-full md:h-5"
+            initial={{ scaleX: 0 }}
+            whileInView={{ scaleX: 1 }}
+            viewport={{ once: true, margin: "-24px" }}
+            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+            style={{ transformOrigin: "center center" }}
           >
-            <Image
-              src={WEDDING_IMAGES.floralDivider}
-              alt=""
-              width={1200}
-              height={120}
-              sizes="100vw"
-              quality={90}
-              className="h-auto w-full"
-              priority={false}
+            <div
+              className="section-divider-floral-crop absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url('${WEDDING_IMAGES.floralDivider}')` }}
             />
+
+            <span className="section-divider-bar-line pointer-events-none absolute inset-0" aria-hidden="true" />
+
+            {!reducedMotion ? (
+              <span className="section-divider-shimmer section-divider-shimmer-animate" aria-hidden="true" />
+            ) : null}
           </motion.div>
         </motion.div>
       </div>

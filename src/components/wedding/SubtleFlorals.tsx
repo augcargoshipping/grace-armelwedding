@@ -12,7 +12,7 @@ const PETAL_COLORS = [
 export function SubtleFlorals() {
   const petals = useMemo(
     () =>
-      Array.from({ length: 14 }, (_, i) => ({
+      Array.from({ length: 8 }, (_, i) => ({
         id: i,
         left: `${(i * 17 + 4) % 100}%`,
         delay: `${(i * 0.7) % 5}s`,
