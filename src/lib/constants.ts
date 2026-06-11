@@ -126,12 +126,12 @@ export const VENUES = [
 ] as const;
 
 export const GALLERY_IMAGES = [
-  { src: "/images/gallery/01.JPG", alt: "Portrait de Grâce et Armel" },
-  { src: "/images/gallery/02.JPG", alt: "Moment complice" },
-  { src: "/images/gallery/03.JPG", alt: "Séance de fiançailles" },
-  { src: "/images/gallery/04.JPG", alt: "Promenade romantique" },
-  { src: "/images/gallery/05.JPG", alt: "Regard tendre" },
-  { src: "/images/gallery/06.JPG", alt: "Préparatifs du grand jour" },
+  { src: "/images/gallery/01.jpg", alt: "Portrait de Grâce et Armel" },
+  { src: "/images/gallery/02.jpg", alt: "Moment complice" },
+  { src: "/images/gallery/03.jpg", alt: "Séance de fiançailles" },
+  { src: "/images/gallery/04.jpg", alt: "Promenade romantique" },
+  { src: "/images/gallery/05.jpg", alt: "Regard tendre" },
+  { src: "/images/gallery/06.jpg", alt: "Préparatifs du grand jour" },
   { src: "/images/gallery/07.JPG", alt: "Souvenir précieux" },
   { src: "/images/gallery/08.JPG", alt: "Complicité partagée" },
   { src: "/images/gallery/09.JPG", alt: "Instant de bonheur" },
