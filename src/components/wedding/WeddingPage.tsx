@@ -19,10 +19,11 @@ import {
   prefetchGalleryImages,
   prefetchHeroImage,
   prefetchOpenerPlaybackAssets,
+  preloadGalleryImages,
   preloadOpenerPoster,
   preloadOpenerVideo,
+  preloadWeddingAudio,
 } from "@/lib/prefetchAssets";
-import { preloadGalleryImages } from "@/hooks/useGalleryPreload";
 import { WeddingMusic, type WeddingMusicHandle } from "./WeddingMusic";
 
 const ProgramTimeline = dynamic(
@@ -39,15 +40,21 @@ const INTRO_KEY = "grace-armel-intro-done";
 export function WeddingPage() {
   const [isRevealed, setIsRevealed] = useState(false);
   const [introDone, setIntroDone] = useState(false);
+  const [openerActive, setOpenerActive] = useState(true);
   const musicRef = useRef<WeddingMusicHandle>(null);
 
   useLayoutEffect(() => {
     prefetchHeroImage();
     void preloadOpenerPoster();
     void preloadOpenerVideo();
+    void preloadWeddingAudio();
+    prefetchGalleryImages();
+    preloadGalleryImages();
+
     if (sessionStorage.getItem(INTRO_KEY) === "1") {
       setIsRevealed(true);
       setIntroDone(true);
+      setOpenerActive(false);
     }
   }, []);
 
@@ -57,6 +64,8 @@ export function WeddingPage() {
     }
     window.scrollTo(0, 0);
     prefetchOpenerPlaybackAssets();
+    void preloadWeddingAudio();
+    preloadGalleryImages();
   }, []);
 
   useEffect(() => {
@@ -71,8 +80,6 @@ export function WeddingPage() {
   useEffect(() => {
     if (!introDone) return;
 
-    prefetchGalleryImages();
-    preloadGalleryImages();
     musicRef.current?.play();
 
     const resumeOnGesture = () => {
@@ -90,6 +97,16 @@ export function WeddingPage() {
 
   const handleOpenStart = () => {
     prefetchOpenerPlaybackAssets();
+    void preloadWeddingAudio();
+    preloadGalleryImages();
+    musicRef.current?.prepare();
+    musicRef.current?.play();
+  };
+
+  const handleReveal = () => {
+    setIsRevealed(true);
+    setIntroDone(true);
+    sessionStorage.setItem(INTRO_KEY, "1");
     musicRef.current?.play();
   };
 
@@ -105,7 +122,7 @@ export function WeddingPage() {
           className="wedding-main relative z-[2]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.95, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         >
           <Hero backgroundReady={isRevealed} contentReady={introDone} />
 
@@ -130,15 +147,12 @@ export function WeddingPage() {
         </motion.main>
       ) : null}
 
-      {!introDone ? (
+      {openerActive ? (
         <VideoOpener
           onOpenStart={handleOpenStart}
           onVideoPlaying={() => musicRef.current?.play()}
-          onReveal={() => setIsRevealed(true)}
-          onFinish={() => {
-            sessionStorage.setItem(INTRO_KEY, "1");
-            setIntroDone(true);
-          }}
+          onReveal={handleReveal}
+          onFinish={() => setOpenerActive(false)}
         />
       ) : null}
     </>

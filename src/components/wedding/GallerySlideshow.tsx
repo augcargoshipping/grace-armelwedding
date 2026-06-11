@@ -7,8 +7,8 @@ import { GALLERY_IMAGES } from "@/lib/constants";
 import { useGalleryPreload } from "@/hooks/useGalleryPreload";
 
 const AUTO_INTERVAL_MS = 5500;
-const AUTO_DURATION = 0.72;
-const MANUAL_DURATION = 0.28;
+const AUTO_DURATION = 0.68;
+const MANUAL_DURATION = 0.26;
 const SWIPE_OFFSET = 48;
 const SWIPE_VELOCITY = 380;
 const slideEase = [0.22, 1, 0.36, 1] as const;
@@ -16,59 +16,34 @@ const fastEase = [0.4, 0, 0.2, 1] as const;
 
 type GallerySlideshowProps = {
   active: boolean;
-  revealed: boolean;
+  enabled: boolean;
 };
 
-type GallerySlideProps = {
-  index: number;
-  zIndex: number;
-  duration: number;
-  ease: readonly [number, number, number, number];
-  fadeIn?: boolean;
-  labelActive?: boolean;
-  onFadeInComplete?: () => void;
-};
-
-function GallerySlide({
+function SlideImage({
   index,
-  zIndex,
-  duration,
-  ease,
-  fadeIn = false,
+  visible,
   labelActive = false,
-  onFadeInComplete,
-}: GallerySlideProps) {
+}: {
+  index: number;
+  visible: boolean;
+  labelActive?: boolean;
+}) {
   const image = GALLERY_IMAGES[index];
 
   return (
-    <motion.div
-      className="absolute inset-0"
-      initial={{ opacity: fadeIn ? 0 : 1 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration, ease }}
-      style={{ zIndex }}
-      aria-hidden={!labelActive}
-      onAnimationComplete={() => {
-        if (fadeIn) onFadeInComplete?.();
-      }}
-    >
-      <img
-        src={image.src}
-        alt={labelActive ? image.alt : ""}
-        decoding="async"
-        loading="eager"
-        draggable={false}
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover select-none"
-      />
-      <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(28,26,24,0.32)] via-transparent to-transparent"
-        aria-hidden="true"
-      />
-    </motion.div>
+    <img
+      src={image.src}
+      alt={labelActive ? image.alt : ""}
+      decoding="sync"
+      loading="eager"
+      draggable={false}
+      fetchPriority={index < 8 ? "high" : "auto"}
+      className="pointer-events-none absolute inset-0 h-full w-full object-cover select-none"
+    />
   );
 }
 
-export function GallerySlideshow({ active, revealed }: GallerySlideshowProps) {
+export function GallerySlideshow({ active, enabled }: GallerySlideshowProps) {
   const pauseUntilRef = useRef(0);
   const transitioningRef = useRef(false);
   const reduceMotion = useReducedMotion();
@@ -79,20 +54,20 @@ export function GallerySlideshow({ active, revealed }: GallerySlideshowProps) {
   const [bootReady, setBootReady] = useState(false);
 
   const frontIndex = overlayIndex ?? baseIndex;
-  const { ensureReady } = useGalleryPreload(revealed, frontIndex);
+  const { ensureAllReady, ensureReady } = useGalleryPreload(enabled, frontIndex);
 
   useEffect(() => {
-    if (!revealed) return;
+    if (!enabled) return;
     let cancelled = false;
 
-    void ensureReady(0).then(() => {
+    void ensureAllReady().then(() => {
       if (!cancelled) setBootReady(true);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [ensureReady, revealed]);
+  }, [enabled, ensureAllReady]);
 
   const transitionDuration = reduceMotion ? 0 : fastTransition ? MANUAL_DURATION : AUTO_DURATION;
   const transitionEase = fastTransition ? fastEase : slideEase;
@@ -179,17 +154,19 @@ export function GallerySlideshow({ active, revealed }: GallerySlideshowProps) {
   }, [active, nextSlide, prevSlide]);
 
   useEffect(() => {
-    if (overlayIndex === null || !reduceMotion) return;
-    commitOverlay();
-  }, [commitOverlay, overlayIndex, reduceMotion]);
+    if (overlayIndex === null || reduceMotion) return;
+    const timer = window.setTimeout(commitOverlay, transitionDuration * 1000 + 30);
+    return () => window.clearTimeout(timer);
+  }, [commitOverlay, overlayIndex, reduceMotion, transitionDuration]);
 
   return (
-    <div className="gallery-slideshow-shell">
+    <div className="gallery-slideshow-shell max-w-full">
       <motion.div
-        className="gallery-slideshow relative aspect-[4/5] cursor-grab overflow-hidden rounded-[1.25rem] border border-champagne/25 shadow-[0_20px_50px_rgba(28,26,24,0.1)] active:cursor-grabbing md:aspect-[16/10] md:rounded-[1.5rem]"
+        className="gallery-slideshow relative aspect-[4/5] w-full max-w-full cursor-grab overflow-hidden rounded-[1.25rem] border border-champagne/25 bg-[#ebe8e1] shadow-[0_20px_50px_rgba(28,26,24,0.1)] active:cursor-grabbing md:aspect-[16/10] md:rounded-[1.5rem]"
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.12}
+        dragElastic={0.06}
+        dragMomentum={false}
         onDragEnd={(_, info) => {
           if (info.offset.x < -SWIPE_OFFSET || info.velocity.x < -SWIPE_VELOCITY) {
             nextSlide(true);
@@ -201,37 +178,41 @@ export function GallerySlideshow({ active, revealed }: GallerySlideshowProps) {
         {bootReady ? (
           overlayIndex !== null ? (
             <>
-              <GallerySlide
-                key={`base-${baseIndex}`}
-                index={baseIndex}
-                zIndex={1}
-                duration={0}
-                ease={slideEase}
-              />
-              <GallerySlide
+              <motion.div
+                className="absolute inset-0"
+                style={{ zIndex: 1 }}
+                initial={false}
+                animate={{ opacity: 1 }}
+              >
+                <SlideImage index={baseIndex} visible />
+              </motion.div>
+              <motion.div
                 key={`overlay-${overlayIndex}`}
-                index={overlayIndex}
-                zIndex={2}
-                duration={transitionDuration}
-                ease={transitionEase}
-                fadeIn
-                labelActive
-                onFadeInComplete={commitOverlay}
-              />
+                className="absolute inset-0"
+                style={{ zIndex: 2 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: transitionDuration, ease: transitionEase }}
+                onAnimationComplete={commitOverlay}
+              >
+                <SlideImage index={overlayIndex} visible labelActive />
+              </motion.div>
             </>
           ) : (
-            <GallerySlide
-              key={`base-${baseIndex}`}
-              index={baseIndex}
-              zIndex={2}
-              duration={0}
-              ease={slideEase}
-              labelActive
-            />
+            <motion.div className="absolute inset-0" style={{ zIndex: 2 }} initial={false} animate={{ opacity: 1 }}>
+              <SlideImage index={baseIndex} visible labelActive />
+            </motion.div>
           )
         ) : (
-          <div className="absolute inset-0 z-[1] animate-pulse bg-gradient-to-br from-pearl-deep via-champagne/10 to-pearl-deep" />
+          <div className="absolute inset-0 z-[1]">
+            <SlideImage index={0} visible />
+          </div>
         )}
+
+        <div
+          className="pointer-events-none absolute inset-0 z-[3] bg-gradient-to-t from-[rgba(28,26,24,0.32)] via-transparent to-transparent"
+          aria-hidden="true"
+        />
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 px-6 pb-5 pt-16 md:px-8 md:pb-6">
           <p className="font-[family-name:var(--font-playfair)] text-sm italic text-white/90 md:text-base">
@@ -274,7 +255,6 @@ export function GallerySlideshow({ active, revealed }: GallerySlideshowProps) {
             aria-label={`Aller à la photo ${i + 1}`}
             aria-current={i === frontIndex ? "true" : undefined}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={image.src}
               alt=""

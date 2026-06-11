@@ -103,7 +103,7 @@ export function Hero({
           initial={{ opacity: 0, y: 14 }}
           animate={contentReady ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.85, ease, delay: 0.8 }}
-          className="hero-photo-slot pointer-events-none absolute inset-x-0 bottom-0 z-20 mx-auto w-full max-w-[min(100vw,580px)] md:relative md:z-10 md:flex-1"
+          className="hero-photo-slot pointer-events-none absolute inset-x-0 bottom-0 z-20 mx-auto w-full max-w-full md:relative md:z-10 md:flex-1"
         >
           <Image
             src={WEDDING_IMAGES.heroPhoto}

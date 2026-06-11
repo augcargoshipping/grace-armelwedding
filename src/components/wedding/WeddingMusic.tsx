@@ -13,6 +13,7 @@ import { Music, VolumeX } from "lucide-react";
 import { WEDDING_AUDIO } from "@/lib/constants";
 
 export type WeddingMusicHandle = {
+  prepare: () => void;
   play: () => void;
   pause: () => void;
 };
@@ -36,12 +37,19 @@ export const WeddingMusic = forwardRef<WeddingMusicHandle, WeddingMusicProps>(fu
     setMounted(true);
   }, []);
 
-  const ensureSource = useCallback(() => {
+  const prepare = useCallback(() => {
     const audio = audioRef.current;
-    if (!audio || audio.src) return;
-    audio.src = WEDDING_AUDIO.src;
+    if (!audio) return;
+    if (!audio.src) {
+      audio.src = WEDDING_AUDIO.src;
+    }
+    audio.preload = "auto";
     audio.load();
   }, []);
+
+  useEffect(() => {
+    prepare();
+  }, [prepare]);
 
   const play = useCallback(() => {
     const audio = audioRef.current;
@@ -54,7 +62,7 @@ export const WeddingMusic = forwardRef<WeddingMusicHandle, WeddingMusicProps>(fu
 
     playPendingRef.current = true;
     setShowControl(true);
-    ensureSource();
+    prepare();
     audio.muted = false;
 
     const playPromise = audio.play();
@@ -70,7 +78,7 @@ export const WeddingMusic = forwardRef<WeddingMusicHandle, WeddingMusicProps>(fu
       .finally(() => {
         playPendingRef.current = false;
       });
-  }, [ensureSource, hasAudio]);
+  }, [hasAudio, prepare]);
 
   const pause = useCallback(() => {
     const audio = audioRef.current;
@@ -79,7 +87,7 @@ export const WeddingMusic = forwardRef<WeddingMusicHandle, WeddingMusicProps>(fu
     setIsPlaying(false);
   }, []);
 
-  useImperativeHandle(ref, () => ({ play, pause }), [play, pause]);
+  useImperativeHandle(ref, () => ({ prepare, play, pause }), [prepare, play, pause]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -128,7 +136,7 @@ export const WeddingMusic = forwardRef<WeddingMusicHandle, WeddingMusicProps>(fu
 
   return (
     <>
-      <audio ref={audioRef} preload="none" playsInline />
+      <audio ref={audioRef} src={WEDDING_AUDIO.src} preload="auto" playsInline />
       {mounted && button ? createPortal(button, document.body) : null}
     </>
   );

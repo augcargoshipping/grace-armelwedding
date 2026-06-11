@@ -2,95 +2,66 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GALLERY_IMAGES } from "@/lib/constants";
+import {
+  isGalleryImageCached,
+  preloadGalleryImage,
+  preloadGalleryImages,
+} from "@/lib/prefetchAssets";
 
-const loadedSrc = new Set<string>();
-const listeners = new Map<string, Set<() => void>>();
-
-function notify(src: string) {
-  listeners.get(src)?.forEach((cb) => cb());
-}
-
-function preloadImage(src: string): Promise<void> {
-  if (loadedSrc.has(src)) return Promise.resolve();
-
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.decoding = "async";
-    img.onload = () => {
-      loadedSrc.add(src);
-      notify(src);
-      resolve();
-    };
-    img.onerror = () => {
-      loadedSrc.add(src);
-      notify(src);
-      resolve();
-    };
-    img.src = src;
-  });
-}
-
-export function isGalleryImageReady(index: number): boolean {
-  return loadedSrc.has(GALLERY_IMAGES[index]?.src ?? "");
-}
-
-export function useGalleryPreload(revealed: boolean, currentIndex: number) {
-  const [, bump] = useState(0);
+export function useGalleryPreload(enabled: boolean, currentIndex: number) {
+  const [readyVersion, setReadyVersion] = useState(0);
 
   useEffect(() => {
-    if (!revealed) return;
+    if (!enabled) return;
 
-    const unsubs: Array<() => void> = [];
+    let cancelled = false;
 
-    GALLERY_IMAGES.forEach((image) => {
-      if (loadedSrc.has(image.src)) return;
-
-      const set = listeners.get(image.src) ?? new Set();
-      const cb = () => bump((v) => v + 1);
-      set.add(cb);
-      listeners.set(image.src, set);
-      unsubs.push(() => {
-        set.delete(cb);
-      });
-    });
-
-    GALLERY_IMAGES.forEach((image) => {
-      void preloadImage(image.src);
+    void preloadGalleryImages().then(() => {
+      if (!cancelled) setReadyVersion((v) => v + 1);
     });
 
     return () => {
-      unsubs.forEach((off) => off());
+      cancelled = true;
     };
-  }, [revealed]);
+  }, [enabled]);
 
   useEffect(() => {
-    if (!revealed) return;
+    if (!enabled) return;
 
     const neighbors = [
       currentIndex,
       (currentIndex + 1) % GALLERY_IMAGES.length,
       (currentIndex - 1 + GALLERY_IMAGES.length) % GALLERY_IMAGES.length,
+      (currentIndex + 2) % GALLERY_IMAGES.length,
     ];
 
-    neighbors.forEach((i) => {
-      void preloadImage(GALLERY_IMAGES[i].src);
+    neighbors.forEach((index) => {
+      void preloadGalleryImage(index).then(() => {
+        setReadyVersion((v) => v + 1);
+      });
     });
-  }, [revealed, currentIndex]);
+  }, [enabled, currentIndex]);
+
+  const isReady = useCallback(
+    (index: number) => {
+      void readyVersion;
+      return isGalleryImageCached(GALLERY_IMAGES[index]?.src ?? "");
+    },
+    [readyVersion],
+  );
 
   const ensureReady = useCallback(async (index: number) => {
-    const src = GALLERY_IMAGES[index]?.src;
-    if (!src) return;
-    if (loadedSrc.has(src)) return;
-    await preloadImage(src);
+    if (isReady(index)) return;
+    await preloadGalleryImage(index);
+    setReadyVersion((v) => v + 1);
+  }, [isReady]);
+
+  const ensureAllReady = useCallback(async () => {
+    await preloadGalleryImages();
+    setReadyVersion((v) => v + 1);
   }, []);
 
-  return { ensureReady, isReady: isGalleryImageReady };
-}
+  const allReady = GALLERY_IMAGES.every((image) => isGalleryImageCached(image.src));
 
-export function preloadGalleryImages(): void {
-  if (typeof window === "undefined") return;
-
-  GALLERY_IMAGES.forEach((image) => {
-    void preloadImage(image.src);
-  });
+  return { allReady, ensureAllReady, ensureReady, isReady };
 }

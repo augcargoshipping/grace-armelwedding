@@ -7,7 +7,9 @@ import {
   preloadHeroBackground,
   preloadOpenerPoster,
   preloadOpenerVideo,
+  preloadWeddingAudio,
   prefetchHeroImage,
+  preloadGalleryImages,
 } from "@/lib/prefetchAssets";
 import { fireOpenerConfetti } from "@/lib/openerConfetti";
 
@@ -20,12 +22,12 @@ type VideoOpenerProps = {
 
 type Phase = "idle" | "playing" | "exit";
 
-const REVEAL_LEAD_SECONDS = 0.48;
-const EXIT_MS = 1100;
-const PLAY_START_TIMEOUT_MS = 8000;
+const REVEAL_LEAD_SECONDS = 0.35;
+const EXIT_MS = 520;
+const PLAY_START_TIMEOUT_MS = 6000;
 const MAX_FALLBACK_MS = 32000;
-const CONFETTI_LEAD_SECONDS = 0.45;
-const READY_FALLBACK_MS = 3500;
+const CONFETTI_LEAD_SECONDS = 0.35;
+const READY_FALLBACK_MS = 1800;
 
 function getBufferedProgress(video: HTMLVideoElement) {
   if (!Number.isFinite(video.duration) || video.duration <= 0) return 0;
@@ -75,6 +77,8 @@ export function VideoOpener({
     void preloadOpenerPoster();
     void preloadOpenerVideo();
     void preloadHeroBackground();
+    void preloadWeddingAudio();
+    void preloadGalleryImages();
     prefetchHeroImage();
 
     const video = videoRef.current;
@@ -97,6 +101,12 @@ export function VideoOpener({
       setLoadProgress(1);
     };
 
+    const markPlayable = () => {
+      if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+        markReady();
+      }
+    };
+
     const updateProgress = () => {
       setLoadProgress((current) => Math.max(current, getBufferedProgress(video)));
     };
@@ -104,8 +114,11 @@ export function VideoOpener({
     const timeout = window.setTimeout(markReady, READY_FALLBACK_MS);
 
     video.addEventListener("canplaythrough", markReady, { once: true });
-    video.addEventListener("canplay", markReady, { once: true });
-    video.addEventListener("loadeddata", updateProgress);
+    video.addEventListener("canplay", markPlayable, { once: true });
+    video.addEventListener("loadeddata", () => {
+      updateProgress();
+      markPlayable();
+    });
     video.addEventListener("progress", updateProgress);
 
     if (video.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) {
@@ -142,9 +155,9 @@ export function VideoOpener({
 
     setPhase("exit");
     onReveal();
+    onFinish?.();
 
     window.setTimeout(() => {
-      onFinish?.();
       document.body.style.overflow = "";
     }, EXIT_MS);
   }, [clearTimers, onFinish, onReveal, triggerConfetti]);
@@ -213,6 +226,7 @@ export function VideoOpener({
     if (startedRef.current || !ready) return;
     startedRef.current = true;
     onOpenStart?.();
+    onVideoPlaying?.();
     setPhase("playing");
 
     const video = videoRef.current;
@@ -248,7 +262,7 @@ export function VideoOpener({
         }
       });
     }
-  }, [finish, onOpenStart, ready]);
+  }, [finish, onOpenStart, onVideoPlaying, ready]);
 
   const showInstructions =
     phase === "idle" || (phase === "playing" && buffering && !hasFirstFrame);

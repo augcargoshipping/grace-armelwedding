@@ -42,7 +42,7 @@ export function Gallery() {
           transition={{ duration: 0.85, delay: 0.1, ease: slideEase }}
           className="relative"
         >
-          <GallerySlideshow active={isActive} revealed={inView} />
+          <GallerySlideshow active={isActive} enabled />
         </motion.div>
       </div>
     </section>

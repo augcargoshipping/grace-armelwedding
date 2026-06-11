@@ -38,11 +38,18 @@ html {
   scroll-behavior: smooth;
   scroll-padding-top: 5.75rem;
   background: var(--pearl);
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
 }
 
 body {
   margin: 0;
   min-height: 100%;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
   background:
     radial-gradient(ellipse at 0% 0%, rgba(26, 122, 98, 0.06) 0%, transparent 42%),
     radial-gradient(ellipse at 100% 12%, rgba(74, 44, 106, 0.05) 0%, transparent 38%),
@@ -58,11 +65,15 @@ section[id] {
 
 .wedding-main {
   overflow-x: clip;
+  width: 100%;
+  max-width: 100%;
 }
 
 .luxury-section {
   position: relative;
   padding: 5.5rem 1.5rem;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 @media (min-width: 768px) {
@@ -190,10 +201,10 @@ section[id] {
 
 @media (max-width: 767px) {
   .hero-subtitle {
-    max-width: none;
-    white-space: nowrap;
-    font-size: clamp(0.58rem, 2.75vw, 0.82rem);
-    line-height: 1.25;
+    max-width: min(100%, 22rem);
+    white-space: normal;
+    font-size: clamp(0.72rem, 3.4vw, 0.95rem);
+    line-height: 1.35;
     letter-spacing: 0.01em;
   }
 
@@ -260,8 +271,8 @@ section[id] {
   top: 0.9rem;
   left: 50%;
   z-index: 280;
-  width: max-content;
-  max-width: calc(100vw - 1.25rem);
+  width: min(100% - 1.25rem, max-content);
+  max-width: calc(100% - 1.25rem);
   transform: translateX(-50%);
 }
 
@@ -609,6 +620,7 @@ section[id] {
 .gallery-slideshow {
   touch-action: pan-y;
   contain: layout paint;
+  max-width: 100%;
 }
 
 .gallery-thumb-row {
@@ -670,8 +682,8 @@ section[id] {
   -webkit-tap-highlight-color: transparent;
   opacity: 1;
   transition:
-    background-color 0.55s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.1s;
+    background-color 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.04s;
 }
 
 .video-opener--exiting {
@@ -688,8 +700,8 @@ section[id] {
 .video-opener__media {
   opacity: 1;
   transition:
-    opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 1s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .video-opener__poster {
