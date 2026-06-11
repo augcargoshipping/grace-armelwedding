@@ -17,7 +17,14 @@ export type WeddingMusicHandle = {
   pause: () => void;
 };
 
-export const WeddingMusic = forwardRef<WeddingMusicHandle>(function WeddingMusic(_, ref) {
+type WeddingMusicProps = {
+  controlVisible?: boolean;
+};
+
+export const WeddingMusic = forwardRef<WeddingMusicHandle, WeddingMusicProps>(function WeddingMusic(
+  { controlVisible = false },
+  ref,
+) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const playPendingRef = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -108,7 +115,7 @@ export const WeddingMusic = forwardRef<WeddingMusicHandle>(function WeddingMusic
   };
 
   const button =
-    hasAudio && showControl ? (
+    hasAudio && (showControl || controlVisible) ? (
       <button
         type="button"
         onClick={toggleMusic}

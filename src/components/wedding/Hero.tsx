@@ -51,7 +51,7 @@ export function Hero({
 
       {contentReady ? <FloatingParticles className="opacity-50 md:opacity-70" /> : null}
 
-      <div className="hero-layout relative z-10 flex min-h-[100svh] w-full flex-col md:mx-auto md:max-w-4xl">
+      <div className="hero-layout relative z-10 flex min-h-[100svh] w-full flex-col md:mx-auto md:max-w-6xl">
         <div className="hero-copy relative z-20 shrink-0 px-5 pt-[max(6.5rem,13svh)] text-center md:px-0 md:pt-[max(5rem,10svh)]">
           <motion.p
             initial={{ opacity: 0, y: 16 }}
@@ -103,14 +103,14 @@ export function Hero({
           initial={{ opacity: 0, y: 14 }}
           animate={contentReady ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.85, ease, delay: 0.8 }}
-          className="hero-photo-slot pointer-events-none absolute inset-x-0 bottom-0 z-20 mx-auto w-full max-w-[min(100vw,580px)] md:relative md:z-10 md:min-h-0 md:max-w-4xl md:flex-1"
+          className="hero-photo-slot pointer-events-none absolute inset-x-0 bottom-0 z-20 mx-auto w-full max-w-[min(100vw,580px)] md:relative md:z-10 md:flex-1"
         >
           <Image
             src={WEDDING_IMAGES.heroPhoto}
             alt={`${COUPLE.bride} et ${COUPLE.groom}`}
             fill
             className="object-contain object-bottom drop-shadow-[0_16px_32px_rgba(28,26,24,0.14)]"
-            sizes="(max-width: 768px) 100vw, 768px"
+            sizes="(max-width: 768px) 100vw, 1200px"
             priority
           />
         </motion.div>

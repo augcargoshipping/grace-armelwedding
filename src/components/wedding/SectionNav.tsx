@@ -15,22 +15,26 @@ const SECTIONS = [
   { id: "rsvp", label: "RSVP" },
 ] as const;
 
-const NAV_OFFSET = 80;
-
 export function SectionNav({ visible }: { visible: boolean }) {
   const [active, setActive] = useState("accueil");
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
   const scrolledRef = useRef(false);
+  const scrollingRef = useRef(false);
 
   useEffect(() => setMounted(true), []);
 
   const scrollToSection = useCallback((id: string) => {
     const target = document.getElementById(id);
     if (!target) return;
-    const top = target.getBoundingClientRect().top + window.scrollY - NAV_OFFSET;
-    window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+
+    scrollingRef.current = true;
     setActive(id);
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    window.setTimeout(() => {
+      scrollingRef.current = false;
+    }, 900);
   }, []);
 
   useEffect(() => {
@@ -56,13 +60,16 @@ export function SectionNav({ visible }: { visible: boolean }) {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (window.scrollY < window.innerHeight * 0.5) return;
+        if (scrollingRef.current) return;
+        if (window.scrollY < window.innerHeight * 0.45) return;
+
         const top = entries
           .filter((e) => e.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
         if (top?.target.id) setActive(top.target.id);
       },
-      { rootMargin: "-28% 0px -58% 0px", threshold: [0.2, 0.45] },
+      { rootMargin: "-22% 0px -55% 0px", threshold: [0.15, 0.35, 0.55] },
     );
 
     onScroll();

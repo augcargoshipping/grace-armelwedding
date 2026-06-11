@@ -14,17 +14,21 @@ import { Footer } from "./Footer";
 import { SectionDivider } from "./SectionDivider";
 import { ScrollProgress } from "./ScrollProgress";
 import { SubtleFlorals } from "./SubtleFlorals";
-import { prefetchHeroImage, prefetchOpenerPlaybackAssets } from "@/lib/prefetchAssets";
+import { Gallery } from "./Gallery";
+import {
+  prefetchGalleryImages,
+  prefetchHeroImage,
+  prefetchOpenerPlaybackAssets,
+  preloadOpenerPoster,
+  preloadOpenerVideo,
+} from "@/lib/prefetchAssets";
+import { preloadGalleryImages } from "@/hooks/useGalleryPreload";
 import { WeddingMusic, type WeddingMusicHandle } from "./WeddingMusic";
 
 const ProgramTimeline = dynamic(
   () => import("./ProgramTimeline").then((m) => ({ default: m.ProgramTimeline })),
   { ssr: false },
 );
-
-const Gallery = dynamic(() => import("./Gallery").then((m) => ({ default: m.Gallery })), {
-  ssr: false,
-});
 
 const RSVP = dynamic(() => import("./RSVP").then((m) => ({ default: m.RSVP })), {
   ssr: false,
@@ -39,6 +43,8 @@ export function WeddingPage() {
 
   useLayoutEffect(() => {
     prefetchHeroImage();
+    void preloadOpenerPoster();
+    void preloadOpenerVideo();
     if (sessionStorage.getItem(INTRO_KEY) === "1") {
       setIsRevealed(true);
       setIntroDone(true);
@@ -62,6 +68,26 @@ export function WeddingPage() {
     }
   }, [introDone]);
 
+  useEffect(() => {
+    if (!introDone) return;
+
+    prefetchGalleryImages();
+    preloadGalleryImages();
+    musicRef.current?.play();
+
+    const resumeOnGesture = () => {
+      musicRef.current?.play();
+    };
+
+    window.addEventListener("pointerdown", resumeOnGesture, { once: true });
+    window.addEventListener("keydown", resumeOnGesture, { once: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", resumeOnGesture);
+      window.removeEventListener("keydown", resumeOnGesture);
+    };
+  }, [introDone]);
+
   const handleOpenStart = () => {
     prefetchOpenerPlaybackAssets();
     musicRef.current?.play();
@@ -69,7 +95,7 @@ export function WeddingPage() {
 
   return (
     <>
-      <WeddingMusic ref={musicRef} />
+      <WeddingMusic ref={musicRef} controlVisible={introDone} />
       {introDone ? <ScrollProgress /> : null}
       <SectionNav visible={introDone} />
       {introDone ? <SubtleFlorals /> : null}

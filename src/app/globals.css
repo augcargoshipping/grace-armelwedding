@@ -36,6 +36,7 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 5.75rem;
   background: var(--pearl);
 }
 
@@ -52,7 +53,11 @@ body {
 }
 
 section[id] {
-  scroll-margin-top: 5.5rem;
+  scroll-margin-top: 5.75rem;
+}
+
+.wedding-main {
+  overflow-x: clip;
 }
 
 .luxury-section {
@@ -223,7 +228,8 @@ section[id] {
 
 @media (min-width: 768px) {
   .hero-photo-slot {
-    max-width: min(94vw, 820px);
+    max-width: min(96vw, 1120px);
+    min-height: 52svh;
   }
 
   .hero-cta-row {
@@ -596,8 +602,35 @@ section[id] {
   color: var(--emerald);
 }
 
+.gallery-slideshow-shell {
+  position: relative;
+}
+
 .gallery-slideshow {
   touch-action: pan-y;
+  contain: layout paint;
+}
+
+.gallery-thumb-row {
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.35rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.gallery-thumb-row::-webkit-scrollbar {
+  display: none;
+}
+
+.gallery-thumb {
+  flex: 0 0 auto;
+  transition-duration: 0.28s;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gallery-thumb--active {
+  transform: translateY(-2px);
 }
 
 .gallery-nav-btn {
@@ -646,17 +679,34 @@ section[id] {
   opacity: 0;
 }
 
-.video-opener video,
-.video-opener img[aria-hidden="true"] {
+.video-opener__media,
+.video-opener__poster {
   transform: translateZ(0) scale(1);
   backface-visibility: hidden;
+}
+
+.video-opener__media {
+  opacity: 1;
   transition:
     opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
     transform 1s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.video-opener--exiting video,
-.video-opener--exiting img[aria-hidden="true"] {
+.video-opener__poster {
+  opacity: 0;
+  transition: opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.video-opener__poster--visible {
+  opacity: 1;
+}
+
+.video-opener__progress {
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
+}
+
+.video-opener--exiting .video-opener__media,
+.video-opener--exiting .video-opener__poster {
   opacity: 0;
   transform: translateZ(0) scale(1);
 }

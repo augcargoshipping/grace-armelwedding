@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { COPY, OPENER_VIDEO } from "@/lib/constants";
-import { prefetchHeroImage, preloadHeroBackground } from "@/lib/prefetchAssets";
+import {
+  preloadHeroBackground,
+  preloadOpenerPoster,
+  preloadOpenerVideo,
+  prefetchHeroImage,
+} from "@/lib/prefetchAssets";
 import { fireOpenerConfetti } from "@/lib/openerConfetti";
 
 type VideoOpenerProps = {
@@ -15,11 +20,18 @@ type VideoOpenerProps = {
 
 type Phase = "idle" | "playing" | "exit";
 
-const REVEAL_LEAD_SECONDS = 0.5;
+const REVEAL_LEAD_SECONDS = 0.48;
 const EXIT_MS = 1100;
-const PLAY_START_TIMEOUT_MS = 10000;
+const PLAY_START_TIMEOUT_MS = 8000;
 const MAX_FALLBACK_MS = 32000;
 const CONFETTI_LEAD_SECONDS = 0.45;
+const READY_FALLBACK_MS = 3500;
+
+function getBufferedProgress(video: HTMLVideoElement) {
+  if (!Number.isFinite(video.duration) || video.duration <= 0) return 0;
+  if (video.buffered.length === 0) return 0;
+  return Math.min(1, video.buffered.end(video.buffered.length - 1) / video.duration);
+}
 
 export function VideoOpener({
   onReveal,
@@ -29,12 +41,14 @@ export function VideoOpener({
 }: VideoOpenerProps) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [ready, setReady] = useState(false);
-  const [showPoster, setShowPoster] = useState(true);
+  const [posterVisible, setPosterVisible] = useState(true);
   const [buffering, setBuffering] = useState(false);
+  const [loadProgress, setLoadProgress] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const startedRef = useRef(false);
   const finishedRef = useRef(false);
   const playingRef = useRef(false);
+  const [hasFirstFrame, setHasFirstFrame] = useState(false);
   const confettiFiredRef = useRef(false);
   const playStartTimerRef = useRef<number | null>(null);
   const maxPlayTimerRef = useRef<number | null>(null);
@@ -50,9 +64,16 @@ export function VideoOpener({
     }
   }, []);
 
+  const hidePoster = useCallback(() => {
+    if (!posterVisible) return;
+    setPosterVisible(false);
+  }, [posterVisible]);
+
   useEffect(() => {
     window.scrollTo(0, 0);
     document.body.style.overflow = "hidden";
+    void preloadOpenerPoster();
+    void preloadOpenerVideo();
     void preloadHeroBackground();
     prefetchHeroImage();
 
@@ -71,17 +92,33 @@ export function VideoOpener({
     const video = videoRef.current;
     if (!video) return;
 
-    const markReady = () => setReady(true);
-    const timeout = window.setTimeout(markReady, 2000);
+    const markReady = () => {
+      setReady(true);
+      setLoadProgress(1);
+    };
 
-    video.addEventListener("loadeddata", markReady, { once: true });
+    const updateProgress = () => {
+      setLoadProgress((current) => Math.max(current, getBufferedProgress(video)));
+    };
+
+    const timeout = window.setTimeout(markReady, READY_FALLBACK_MS);
+
+    video.addEventListener("canplaythrough", markReady, { once: true });
     video.addEventListener("canplay", markReady, { once: true });
+    video.addEventListener("loadeddata", updateProgress);
+    video.addEventListener("progress", updateProgress);
 
-    if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+    if (video.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) {
       markReady();
+    } else {
+      updateProgress();
     }
 
-    return () => window.clearTimeout(timeout);
+    return () => {
+      window.clearTimeout(timeout);
+      video.removeEventListener("loadeddata", updateProgress);
+      video.removeEventListener("progress", updateProgress);
+    };
   }, []);
 
   const triggerConfetti = useCallback(() => {
@@ -130,8 +167,9 @@ export function VideoOpener({
 
   const handlePlaying = useCallback(() => {
     playingRef.current = true;
+    setHasFirstFrame(true);
     setBuffering(false);
-    setShowPoster(false);
+    hidePoster();
     onVideoPlaying?.();
 
     if (playStartTimerRef.current !== null) {
@@ -140,20 +178,21 @@ export function VideoOpener({
     }
 
     scheduleMaxPlayTimeout();
-  }, [onVideoPlaying, scheduleMaxPlayTimeout]);
+  }, [hidePoster, onVideoPlaying, scheduleMaxPlayTimeout]);
 
   const handleWaiting = useCallback(() => {
-    if (phase === "playing") {
+    if (phase === "playing" && !hasFirstFrame) {
       setBuffering(true);
     }
-  }, [phase]);
+  }, [hasFirstFrame, phase]);
 
   const handleTimeUpdate = useCallback(() => {
     const video = videoRef.current;
     if (!video || finishedRef.current) return;
 
-    if (video.currentTime > 0.04) {
-      setShowPoster(false);
+    if (video.currentTime > 0.03) {
+      setHasFirstFrame(true);
+      hidePoster();
       setBuffering(false);
     }
 
@@ -168,20 +207,22 @@ export function VideoOpener({
     if (remaining <= REVEAL_LEAD_SECONDS) {
       finish();
     }
-  }, [finish, triggerConfetti]);
+  }, [finish, hidePoster, triggerConfetti]);
 
   const open = useCallback(() => {
     if (startedRef.current || !ready) return;
     startedRef.current = true;
     onOpenStart?.();
     setPhase("playing");
-    setBuffering(true);
 
     const video = videoRef.current;
     if (!video) {
       finish();
       return;
     }
+
+    const canStartImmediately = video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA;
+    setBuffering(!canStartImmediately);
 
     video.muted = true;
     video.defaultMuted = true;
@@ -208,6 +249,9 @@ export function VideoOpener({
       });
     }
   }, [finish, onOpenStart, ready]);
+
+  const showInstructions =
+    phase === "idle" || (phase === "playing" && buffering && !hasFirstFrame);
 
   const instructionText =
     phase === "playing" && buffering
@@ -238,7 +282,7 @@ export function VideoOpener({
     >
       <video
         ref={videoRef}
-        className="absolute inset-0 h-full w-full object-cover"
+        className="video-opener__media absolute inset-0 h-full w-full object-cover"
         src={OPENER_VIDEO.src}
         poster={OPENER_VIDEO.poster}
         playsInline
@@ -252,23 +296,34 @@ export function VideoOpener({
         onError={() => finish()}
       />
 
-      {showPoster ? (
-        <img
-          src={OPENER_VIDEO.poster}
-          alt=""
-          className="pointer-events-none absolute inset-0 z-[5] h-full w-full object-cover"
-          aria-hidden="true"
-        />
+      <img
+        src={OPENER_VIDEO.poster}
+        alt=""
+        className={`video-opener__poster pointer-events-none absolute inset-0 z-[5] h-full w-full object-cover ${
+          posterVisible ? "video-opener__poster--visible" : ""
+        }`}
+        aria-hidden="true"
+      />
+
+      {!ready ? (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[15] px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          <div className="mx-auto h-0.5 max-w-xs overflow-hidden rounded-full bg-white/15">
+            <div
+              className="video-opener__progress h-full rounded-full bg-gradient-to-r from-champagne-light via-gold to-champagne-light transition-[width] duration-300 ease-out"
+              style={{ width: `${Math.max(8, Math.round(loadProgress * 100))}%` }}
+            />
+          </div>
+        </div>
       ) : null}
 
       <AnimatePresence>
-        {phase === "idle" || (phase === "playing" && buffering) ? (
+        {showInstructions ? (
           <motion.div
             key="opener-instructions"
             initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             className="pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/70 via-black/35 to-transparent px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-20 md:px-8 md:pt-8 md:pb-24"
           >
             <div className="mx-auto flex max-w-lg flex-col items-center text-center">
