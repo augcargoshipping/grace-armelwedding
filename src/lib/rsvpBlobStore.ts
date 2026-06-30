@@ -1,55 +1,73 @@
-import { list, put } from "@vercel/blob";
+import { get, put } from "@vercel/blob";
 import type { RsvpPayload, RsvpSubmission } from "@/lib/rsvpTypes";
 
 const BLOB_PATH = "rsvp/submissions.json";
 
-function getToken() {
-  return process.env.BLOB_READ_WRITE_TOKEN ?? "";
+function findReadWriteToken(): string | undefined {
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    return process.env.BLOB_READ_WRITE_TOKEN;
+  }
+
+  for (const [key, value] of Object.entries(process.env)) {
+    if (key.endsWith("_READ_WRITE_TOKEN") && value) {
+      return value;
+    }
+  }
+
+  return undefined;
 }
 
 export function isBlobStorageConfigured() {
-  return Boolean(getToken());
+  return Boolean(process.env.BLOB_STORE_ID || findReadWriteToken());
 }
 
-async function readJsonFile(): Promise<RsvpSubmission[]> {
-  const token = getToken();
-  if (!token) return [];
+function getPutOptions() {
+  const token = findReadWriteToken();
 
-  const { blobs } = await list({ prefix: BLOB_PATH, token });
-  const file = blobs.find((blob) => blob.pathname === BLOB_PATH);
-  if (!file) return [];
-
-  const response = await fetch(file.url, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    console.error("Failed to read RSVP blob:", response.status, response.statusText);
-    return [];
-  }
-
-  const data = (await response.json()) as RsvpSubmission[];
-  return Array.isArray(data) ? data : [];
-}
-
-async function writeJsonFile(submissions: RsvpSubmission[]): Promise<void> {
-  const token = getToken();
-  if (!token) {
-    throw new Error("Blob storage not configured");
-  }
-
-  await put(BLOB_PATH, JSON.stringify(submissions), {
-    access: "private",
-    token,
+  return {
+    access: "private" as const,
     contentType: "application/json",
     addRandomSuffix: false,
     allowOverwrite: true,
-  });
+    ...(token ? { token } : {}),
+  };
+}
+
+function getReadOptions() {
+  const token = findReadWriteToken();
+  return {
+    access: "private" as const,
+    ...(token ? { token } : {}),
+  };
+}
+
+async function readJsonFile(): Promise<RsvpSubmission[]> {
+  if (!isBlobStorageConfigured()) return [];
+
+  try {
+    const result = await get(BLOB_PATH, getReadOptions());
+    if (!result?.stream) return [];
+
+    const text = await new Response(result.stream).text();
+    if (!text.trim()) return [];
+
+    const data = JSON.parse(text) as RsvpSubmission[];
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error("Failed to read RSVP blob:", error);
+    return [];
+  }
+}
+
+async function writeJsonFile(submissions: RsvpSubmission[]): Promise<void> {
+  if (!isBlobStorageConfigured()) {
+    throw new Error("Blob storage not configured");
+  }
+
+  await put(BLOB_PATH, JSON.stringify(submissions), getPutOptions());
 }
 
 export async function listBlobSubmissions(): Promise<RsvpSubmission[]> {
-  if (!isBlobStorageConfigured()) return [];
   return readJsonFile();
 }
 
@@ -71,10 +89,6 @@ export async function addBlobSubmission(payload: RsvpPayload): Promise<RsvpSubmi
 }
 
 export async function mergeBlobSubmissions(incoming: RsvpSubmission[]): Promise<number> {
-  if (!isBlobStorageConfigured()) {
-    throw new Error("Blob storage not configured");
-  }
-
   const existing = await readJsonFile();
   const seen = new Set(existing.map((entry) => entry.id));
   let added = 0;
@@ -95,9 +109,5 @@ export async function mergeBlobSubmissions(incoming: RsvpSubmission[]): Promise<
 }
 
 export async function clearBlobSubmissions(): Promise<void> {
-  if (!isBlobStorageConfigured()) {
-    throw new Error("Blob storage not configured");
-  }
-
   await writeJsonFile([]);
 }
