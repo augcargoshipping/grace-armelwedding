@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { COUPLE } from "@/lib/constants";
 import { toTelHref } from "@/lib/phone";
 import type { RsvpSubmission } from "@/lib/rsvpTypes";
@@ -19,6 +19,7 @@ export default function RsvpAdminPage() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [error, setError] = useState("");
   const [submissions, setSubmissions] = useState<RsvpSubmission[]>([]);
 
@@ -110,7 +111,7 @@ export default function RsvpAdminPage() {
 
   const handleClearAll = async () => {
     const confirmed = window.confirm(
-      "Supprimer toutes les réponses RSVP ? Cette action est irréversible et effacera les données dans Supabase.",
+      "Supprimer toutes les réponses RSVP enregistrées sur Vercel Blob ? Les données Supabase (si accessibles) seront aussi effacées. Cette action est irréversible.",
     );
     if (!confirmed) return;
 
@@ -140,6 +141,52 @@ export default function RsvpAdminPage() {
     link.download = `rsvp-grace-armel-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleImportLegacy = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setImporting(true);
+    setError("");
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text) as unknown;
+      const submissions = Array.isArray(parsed)
+        ? parsed
+        : typeof parsed === "object" &&
+            parsed !== null &&
+            Array.isArray((parsed as { submissions?: unknown[] }).submissions)
+          ? (parsed as { submissions: unknown[] }).submissions
+          : null;
+
+      if (!submissions) {
+        setError("Fichier JSON invalide. Utilisez un export Supabase ou un tableau JSON.");
+        return;
+      }
+
+      const response = await fetch("/api/rsvp/admin/import-legacy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ submissions }),
+      });
+
+      if (!response.ok) {
+        const data = (await response.json()) as { error?: string };
+        setError(data.error ?? "Import impossible.");
+        return;
+      }
+
+      const data = (await response.json()) as { added: number; total: number };
+      window.alert(`${data.added} réponse(s) importée(s) sur ${data.total}.`);
+      await loadSubmissions();
+    } catch {
+      setError("Import impossible. Vérifiez le format JSON.");
+    } finally {
+      setImporting(false);
+    }
   };
 
   if (!authed) {
@@ -188,6 +235,9 @@ export default function RsvpAdminPage() {
           <p className="mt-1 font-[family-name:var(--font-sans)] text-sm text-ink-soft">
             {stats.total} réponses · {stats.attending} présents · {stats.guests} personnes
           </p>
+          <p className="mt-1 font-[family-name:var(--font-sans)] text-xs text-ink-soft/75">
+            Nouvelles réponses : Vercel Blob · Archives Supabase fusionnées si disponibles
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={handleRefresh} className="btn-secondary" disabled={refreshing}>
@@ -196,6 +246,16 @@ export default function RsvpAdminPage() {
           <button type="button" onClick={downloadCsv} className="btn-secondary">
             Exporter CSV
           </button>
+          <label className="btn-secondary cursor-pointer">
+            {importing ? "Import…" : "Importer archive"}
+            <input
+              type="file"
+              accept="application/json,.json"
+              className="sr-only"
+              disabled={importing}
+              onChange={handleImportLegacy}
+            />
+          </label>
           <button type="button" onClick={handleLogout} className="btn-secondary">
             Déconnexion
           </button>

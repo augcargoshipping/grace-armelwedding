@@ -23,17 +23,27 @@ Remplacez ensuite les fichiers dans `public/images/` par vos photos.
 
 **Séparateur floral entre sections :** remplacez `public/images/floral-divider.png` par votre fichier PNG (fond transparent recommandé, format horizontal).
 
-## RSVP (Supabase)
+## RSVP (Vercel Blob)
 
-1. Créez un projet sur [supabase.com](https://supabase.com)
-2. Exécutez `supabase/schema.sql` dans l'éditeur SQL
+Les nouvelles réponses sont enregistrées dans **Vercel Blob** (fichier privé JSON).
+
+1. Dans le [tableau de bord Vercel](https://vercel.com/dashboard) → votre projet → **Storage** → créez un store **Blob**
+2. Connectez-le au projet (Vercel ajoute `BLOB_READ_WRITE_TOKEN` automatiquement)
 3. Copiez `.env.example` vers `.env.local` et renseignez :
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `BLOB_READ_WRITE_TOKEN`
+   - `RSVP_ADMIN_PASSWORD`
 
-## Où vont les réponses RSVP ?
+### Anciennes réponses Supabase
 
-Les soumissions sont enregistrées dans **Supabase**, table `rsvp_submissions`.
+Si Supabase est encore accessible, l’admin fusionne automatiquement les anciennes réponses avec les nouvelles.
+
+Si le projet Supabase est en pause :
+1. Réactivez-le brièvement dans Supabase **ou** exportez la table `rsvp_submissions` en JSON
+2. Dans **`/admin/rsvp`**, utilisez **Importer archive** pour fusionner l’export dans Vercel Blob
+
+Variables Supabase optionnelles (lecture seule / fusion) :
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
 
 ### Accès admin (recommandé)
 
@@ -48,7 +58,7 @@ Dans le [tableau de bord Supabase](https://supabase.com/dashboard) → **Table E
 ## Déploiement (Vercel)
 
 1. Importez le dépôt
-2. Ajoutez les variables d'environnement Supabase + `RSVP_ADMIN_PASSWORD`
+2. Ajoutez les variables d'environnement Blob + `RSVP_ADMIN_PASSWORD` (Supabase optionnel pour archives)
 3. Déployez
 
 ## Stack
