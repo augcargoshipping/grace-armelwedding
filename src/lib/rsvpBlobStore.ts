@@ -32,25 +32,36 @@ function resolveCredentials() {
 
 export function isBlobStorageConfigured() {
   const { token, storeId } = resolveCredentials();
-  if (token || storeId) return true;
+  if (token) return true;
+  if (storeId) return true;
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim() || process.env.BLOB_STORE_ID?.trim());
+}
 
-  return Object.keys(process.env).some((key) => {
-    const upper = key.toUpperCase();
-    return upper.includes("BLOB") && Boolean(process.env[key]?.trim());
-  });
+export function getBlobAuthMode(): "token" | "oidc" | "none" {
+  const { token, storeId } = resolveCredentials();
+  if (token || process.env.BLOB_READ_WRITE_TOKEN?.trim()) return "token";
+  if (storeId || process.env.BLOB_STORE_ID?.trim()) return "oidc";
+  return "none";
 }
 
 function callOptions(): BlobCallOptions {
-  const { token, storeId } = resolveCredentials();
+  const { token } = resolveCredentials();
   const options: BlobCallOptions = { access: "private" };
 
+  // Never pass storeId — it forces OIDC and can block the read-write token fallback.
   if (token) {
     options.token = token;
-  } else if (storeId) {
-    options.storeId = storeId;
   }
 
   return options;
+}
+
+function callOptionsWithEnvToken(): BlobCallOptions {
+  const envToken = process.env.BLOB_READ_WRITE_TOKEN?.trim();
+  if (envToken) {
+    return { access: "private", token: envToken };
+  }
+  return callOptions();
 }
 
 function putOptions() {
@@ -140,6 +151,24 @@ export async function listBlobSubmissions(): Promise<RsvpSubmission[]> {
   return sortSubmissions(Array.from(byId.values()));
 }
 
+async function putSubmissionEntry(entry: RsvpSubmission) {
+  const pathname = `${RSVP_PREFIX}${entry.id}.json`;
+  const body = JSON.stringify(entry);
+  const options = putOptions();
+
+  try {
+    await put(pathname, body, options);
+  } catch (primaryError) {
+    const fallback = callOptionsWithEnvToken();
+    if (fallback.token && fallback.token !== options.token) {
+      await put(pathname, body, { ...options, ...fallback });
+      return;
+    }
+    console.error("Blob RSVP write failed:", primaryError);
+    throw primaryError;
+  }
+}
+
 export async function addBlobSubmission(payload: RsvpPayload): Promise<RsvpSubmission> {
   const entry: RsvpSubmission = {
     id: crypto.randomUUID(),
@@ -151,8 +180,25 @@ export async function addBlobSubmission(payload: RsvpPayload): Promise<RsvpSubmi
     createdAt: new Date().toISOString(),
   };
 
-  await put(`${RSVP_PREFIX}${entry.id}.json`, JSON.stringify(entry), putOptions());
+  await putSubmissionEntry(entry);
   return entry;
+}
+
+export async function probeBlobStorage(): Promise<{ ok: boolean; error?: string }> {
+  if (!isBlobStorageConfigured()) {
+    return { ok: false, error: "Blob env vars missing" };
+  }
+
+  const probePath = `${RSVP_PREFIX}__probe__.json`;
+
+  try {
+    await put(probePath, JSON.stringify({ probe: true }), putOptions());
+    await del(probePath, callOptions());
+    return { ok: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Blob probe failed";
+    return { ok: false, error: message };
+  }
 }
 
 export async function mergeBlobSubmissions(incoming: RsvpSubmission[]): Promise<number> {
@@ -162,7 +208,7 @@ export async function mergeBlobSubmissions(incoming: RsvpSubmission[]): Promise<
 
   for (const entry of incoming) {
     if (!entry.id || seen.has(entry.id)) continue;
-    await put(`${RSVP_PREFIX}${entry.id}.json`, JSON.stringify(entry), putOptions());
+    await putSubmissionEntry(entry);
     seen.add(entry.id);
     added += 1;
   }

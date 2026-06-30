@@ -1,15 +1,42 @@
 import {
   addBlobSubmission,
   clearBlobSubmissions,
+  getBlobAuthMode,
   isBlobStorageConfigured,
   listBlobSubmissions,
   mergeBlobSubmissions,
+  probeBlobStorage,
 } from "@/lib/rsvpBlobStore";
+import {
+  addRedisSubmission,
+  clearRedisSubmissions,
+  isRedisStorageConfigured,
+  listRedisSubmissions,
+  mergeRedisSubmissions,
+  probeRedisStorage,
+} from "@/lib/rsvpRedisStore";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import type { RsvpPayload, RsvpSubmission } from "@/lib/rsvpTypes";
 
 export function isRsvpStorageConfigured() {
-  return isBlobStorageConfigured();
+  return isRedisStorageConfigured() || isBlobStorageConfigured();
+}
+
+export function getRsvpStorageStatus() {
+  const redis = isRedisStorageConfigured();
+  const blob = isBlobStorageConfigured();
+
+  return {
+    configured: redis || blob,
+    primary: redis ? "redis" : blob ? "blob" : "none",
+    redis,
+    blob,
+    blobAuth: getBlobAuthMode(),
+    supabaseLegacy: Boolean(
+      process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() &&
+        process.env.SUPABASE_SERVICE_ROLE_KEY?.trim(),
+    ),
+  };
 }
 
 async function listSupabaseSubmissions(): Promise<RsvpSubmission[]> {
@@ -37,18 +64,13 @@ async function listSupabaseSubmissions(): Promise<RsvpSubmission[]> {
   }));
 }
 
-function mergeSubmissions(
-  blobSubmissions: RsvpSubmission[],
-  supabaseSubmissions: RsvpSubmission[],
-): RsvpSubmission[] {
+function mergeSubmissions(...groups: RsvpSubmission[][]): RsvpSubmission[] {
   const byId = new Map<string, RsvpSubmission>();
 
-  for (const entry of supabaseSubmissions) {
-    byId.set(entry.id, entry);
-  }
-
-  for (const entry of blobSubmissions) {
-    byId.set(entry.id, entry);
+  for (const group of groups) {
+    for (const entry of group) {
+      if (entry.id) byId.set(entry.id, entry);
+    }
   }
 
   return Array.from(byId.values()).sort(
@@ -57,28 +79,37 @@ function mergeSubmissions(
 }
 
 export async function listRsvpSubmissions(): Promise<RsvpSubmission[]> {
-  const [blobSubmissions, supabaseSubmissions] = await Promise.all([
+  const [redisSubmissions, blobSubmissions, supabaseSubmissions] = await Promise.all([
+    listRedisSubmissions(),
     listBlobSubmissions(),
     listSupabaseSubmissions(),
   ]);
 
-  return mergeSubmissions(blobSubmissions, supabaseSubmissions);
+  return mergeSubmissions(supabaseSubmissions, blobSubmissions, redisSubmissions);
 }
 
 export async function createRsvpSubmission(payload: RsvpPayload): Promise<RsvpSubmission> {
-  if (!isBlobStorageConfigured()) {
-    throw new Error("RSVP storage not configured");
+  if (isRedisStorageConfigured()) {
+    return addRedisSubmission(payload);
   }
 
-  return addBlobSubmission(payload);
+  if (isBlobStorageConfigured()) {
+    return addBlobSubmission(payload);
+  }
+
+  throw new Error("RSVP storage not configured");
 }
 
 export async function importLegacySubmissions(submissions: RsvpSubmission[]): Promise<number> {
+  if (isRedisStorageConfigured()) {
+    return mergeRedisSubmissions(submissions);
+  }
+
   return mergeBlobSubmissions(submissions);
 }
 
 export async function clearRsvpSubmissions(): Promise<void> {
-  await clearBlobSubmissions();
+  await Promise.all([clearRedisSubmissions(), clearBlobSubmissions()]);
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return;
@@ -91,4 +122,14 @@ export async function clearRsvpSubmissions(): Promise<void> {
   if (error) {
     console.warn("Supabase RSVP clear skipped:", error.message);
   }
+}
+
+export async function probeRsvpStorage() {
+  const status = getRsvpStorageStatus();
+  const [redis, blob] = await Promise.all([probeRedisStorage(), probeBlobStorage()]);
+
+  return {
+    ...status,
+    probes: { redis, blob },
+  };
 }

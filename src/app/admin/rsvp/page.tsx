@@ -21,7 +21,18 @@ export default function RsvpAdminPage() {
   const [clearing, setClearing] = useState(false);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState("");
+  const [storageStatus, setStorageStatus] = useState<{
+    configured: boolean;
+    primary: string;
+    probes?: { redis: { ok: boolean; error?: string }; blob: { ok: boolean; error?: string } };
+  } | null>(null);
   const [submissions, setSubmissions] = useState<RsvpSubmission[]>([]);
+
+  const loadStorageStatus = useCallback(async () => {
+    const response = await fetch("/api/rsvp/admin/status", { cache: "no-store" });
+    if (!response.ok) return;
+    setStorageStatus(await response.json());
+  }, []);
 
   const loadSubmissions = useCallback(async () => {
     const response = await fetch("/api/rsvp/admin/submissions", { cache: "no-store" });
@@ -40,7 +51,8 @@ export default function RsvpAdminPage() {
     setSubmissions(data.submissions);
     setAuthed(true);
     setError("");
-  }, []);
+    await loadStorageStatus();
+  }, [loadStorageStatus]);
 
   useEffect(() => {
     void loadSubmissions();
@@ -236,8 +248,31 @@ export default function RsvpAdminPage() {
             {stats.total} réponses · {stats.attending} présents · {stats.guests} personnes
           </p>
           <p className="mt-1 font-[family-name:var(--font-sans)] text-xs text-ink-soft/75">
-            Nouvelles réponses : Vercel Blob · Archives Supabase fusionnées si disponibles
+            Stockage actif :{" "}
+            {storageStatus?.primary === "redis"
+              ? "Redis (Upstash)"
+              : storageStatus?.primary === "blob"
+                ? "Vercel Blob"
+                : "non configuré"}{" "}
+            · Archives Supabase fusionnées si disponibles
           </p>
+          {storageStatus && !storageStatus.configured ? (
+            <p className="mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 font-[family-name:var(--font-sans)] text-xs text-red-800">
+              RSVP bloqué : ajoutez Redis (Vercel Marketplace) ou copiez{" "}
+              <code className="rounded bg-white/80 px-1">BLOB_READ_WRITE_TOKEN</code> en Production,
+              puis redéployez.
+            </p>
+          ) : null}
+          {storageStatus?.probes &&
+          ((storageStatus.primary === "redis" && !storageStatus.probes.redis.ok) ||
+            (storageStatus.primary === "blob" && !storageStatus.probes.blob.ok)) ? (
+            <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 font-[family-name:var(--font-sans)] text-xs text-amber-900">
+              Test d&apos;écriture échoué :{" "}
+              {storageStatus.primary === "redis"
+                ? storageStatus.probes.redis.error
+                : storageStatus.probes.blob.error}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={handleRefresh} className="btn-secondary" disabled={refreshing}>
